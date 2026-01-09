@@ -6,13 +6,13 @@ import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDscYUonnvEW7fsST60Cjw7gG5Rdu07S3o",
-  authDomain: "calorietracking-d41e8.firebaseapp.com",
-  projectId: "calorietracking-d41e8",
-  storageBucket: "calorietracking-d41e8.firebasestorage.app",
-  messagingSenderId: "190065413740",
-  appId: "1:190065413740:web:50ec4f564732d034755249",
-  measurementId: "G-T96KKESFBM"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDscYUonnvEW7fsST60Cjw7gG5Rdu07S3o",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "calorietracking-d41e8.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "calorietracking-d41e8",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "calorietracking-d41e8.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "190065413740",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:190065413740:web:50ec4f564732d034755249",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-T96KKESFBM"
 };
 
 // Initialize Firebase
