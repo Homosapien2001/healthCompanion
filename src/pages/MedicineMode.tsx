@@ -11,15 +11,29 @@ import {
     MessageCircle
 } from "lucide-react"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { collection, addDoc } from "firebase/firestore"
+import { db } from "../lib/firebase"
 import { toast } from "sonner"
 import { searchMedicine, type Medicine } from "../services/medicine"
 
 export default function MedicineMode() {
+    const user = useAppStore(state => state.user)
     const toggleMedicineMode = useAppStore(state => state.toggleMedicineMode)
+    const navigate = useNavigate()
+
     const [searchQuery, setSearchQuery] = useState("")
     const [searchResults, setSearchResults] = useState<Medicine[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null)
+
+    // Reminder State
+    const [showReminderModal, setShowReminderModal] = useState(false)
+    const [reminderForm, setReminderForm] = useState({
+        time: "08:00",
+        notes: "",
+        medicineName: ""
+    })
 
     const [hasSearched, setHasSearched] = useState(false)
 
@@ -53,11 +67,48 @@ export default function MedicineMode() {
         }
     }
 
-    const handleWhatsAppSetup = () => {
-        // Mocking the setup
-        toast.success("WhatsApp Reminders Enabled", {
-            description: "You will receive notifications 15 minutes before your scheduled dose."
-        })
+    const checkPhoneAndOpenReminder = (prefillMedicine?: Medicine) => {
+        if (!user.phoneNumber) {
+            toast.error("Phone number required! Please add your phone number in Profile settings to enable WhatsApp reminders.")
+            setTimeout(() => {
+                toggleMedicineMode()
+                navigate("/profile")
+            }, 1500)
+            return
+        }
+
+        if (prefillMedicine) {
+            setReminderForm(prev => ({ ...prev, medicineName: prefillMedicine.name }))
+            setSelectedMedicine(null)
+        }
+        setShowReminderModal(true)
+    }
+
+    const handleSaveReminder = async () => {
+        if (!reminderForm.medicineName) {
+            toast.error("Please enter medicine name")
+            return
+        }
+
+        try {
+            if (user.email) {
+                await addDoc(collection(db, 'users', user.email, 'reminders'), {
+                    ...reminderForm,
+                    createdAt: Date.now(),
+                    enabled: true,
+                    phoneNumber: user.phoneNumber
+                })
+            }
+
+            toast.success("Reminder Scheduled!", {
+                description: `We will notify ${user.phoneNumber} at ${reminderForm.time} via WhatsApp.`
+            })
+            setShowReminderModal(false)
+            setReminderForm({ time: "08:00", notes: "", medicineName: "" })
+        } catch (error) {
+            console.error("Failed to save reminder", error)
+            toast.error("Failed to schedule reminder")
+        }
     }
 
     return (
@@ -158,13 +209,16 @@ export default function MedicineMode() {
                         <CalendarClock size={20} className="text-slate-400" />
                         Schedule
                     </h2>
-                    <button className="text-sm font-medium text-red-600 dark:text-red-400 hover:opacity-80">
+                    <button
+                        onClick={() => checkPhoneAndOpenReminder()}
+                        className="text-sm font-medium text-red-600 dark:text-red-400 hover:opacity-80"
+                    >
                         + Add Reminder
                     </button>
                 </div>
 
                 {/* WhatsApp Notification Promo */}
-                <Card onClick={handleWhatsAppSetup} className="mb-4 p-4 border-green-200 bg-green-50/50 dark:bg-green-950/10 dark:border-green-900/50 cursor-pointer hover:bg-green-50 transition-colors">
+                <Card onClick={() => checkPhoneAndOpenReminder()} className="mb-4 p-4 border-green-200 bg-green-50/50 dark:bg-green-950/10 dark:border-green-900/50 cursor-pointer hover:bg-green-50 transition-colors">
                     <div className="flex items-start gap-3">
                         <div className="p-2 bg-green-500 text-white rounded-lg shrink-0">
                             <MessageCircle size={20} />
@@ -172,7 +226,7 @@ export default function MedicineMode() {
                         <div>
                             <h3 className="font-semibold text-green-800 dark:text-green-400 text-sm">WhatsApp Notifications</h3>
                             <p className="text-xs text-green-700/70 dark:text-green-500 mt-1">
-                                Get notified 15 minutes before every dose directly on WhatsApp.
+                                {user.phoneNumber ? `Active for ${user.phoneNumber}` : "Enable 15 min alerts on your phone"}
                             </p>
                         </div>
                     </div>
@@ -268,12 +322,60 @@ export default function MedicineMode() {
                                 </div>
                             </div>
 
-                            <Button fullWidth onClick={() => {
-                                toast.success(`Added ${selectedMedicine.name} to reminders`)
-                                setSelectedMedicine(null)
-                            }}>
-                                Add to Schedule
+                            <Button fullWidth onClick={() => checkPhoneAndOpenReminder(selectedMedicine)}>
+                                Add to Schedule with Reminders
                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Reminder Modal */}
+            {showReminderModal && (
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl animate-in fade-in duration-200">
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Set Reminder</h3>
+
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-500 mb-1">Medicine Name</label>
+                                <input
+                                    value={reminderForm.medicineName}
+                                    onChange={e => setReminderForm({ ...reminderForm, medicineName: e.target.value })}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700"
+                                    placeholder="e.g. Ibuprofen"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-500 mb-1">Time</label>
+                                <input
+                                    type="time"
+                                    value={reminderForm.time}
+                                    onChange={e => setReminderForm({ ...reminderForm, time: e.target.value })}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-500 mb-1">Notes (Optional)</label>
+                                <input
+                                    value={reminderForm.notes}
+                                    onChange={e => setReminderForm({ ...reminderForm, notes: e.target.value })}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700"
+                                    placeholder="e.g. Take with food"
+                                />
+                            </div>
+
+                            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-xl flex gap-3 items-center">
+                                <MessageCircle size={20} className="text-green-600 shrink-0" />
+                                <p className="text-xs text-green-700 dark:text-green-400">
+                                    A WhatsApp alert will be sent to <b>{user.phoneNumber}</b> 15 mins before time.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <Button variant="ghost" fullWidth onClick={() => setShowReminderModal(false)}>Cancel</Button>
+                            <Button fullWidth onClick={handleSaveReminder}>Save Reminder</Button>
                         </div>
                     </div>
                 </div>

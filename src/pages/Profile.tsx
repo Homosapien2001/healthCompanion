@@ -30,6 +30,7 @@ export default function Profile() {
         setUser({
             name: formData.get("name") as string,
             email: formData.get("email") as string,
+            phoneNumber: formData.get("phoneNumber") as string,
             height: Number(formData.get("height")),
             weight: Number(formData.get("weight")),
             age: Number(formData.get("age")),
@@ -133,6 +134,10 @@ export default function Profile() {
                             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email</label>
                             <input name="email" type="email" defaultValue={user.email} className="w-full p-2 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-lg active:scale-[0.99] text-slate-900 dark:text-slate-100" />
                         </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Phone (for WhatsApp Reminders)</label>
+                            <input name="phoneNumber" type="tel" defaultValue={user.phoneNumber} placeholder="+1234567890" className="w-full p-2 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-lg active:scale-[0.99] text-slate-900 dark:text-slate-100" />
+                        </div>
                         <div className="grid grid-cols-3 gap-3">
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Height (cm)</label>
@@ -173,9 +178,13 @@ export default function Profile() {
                 ) : (
                     <div className="space-y-4">
                         <div className="grid grid-cols-3 gap-y-4 text-center border-b border-slate-100 pb-4">
-                            <div className="col-span-3 text-left pl-2">
+                            <div className="col-span-3 text-left pl-2 mb-2">
                                 <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Email</div>
                                 <div className="font-semibold text-slate-700 dark:text-slate-200 break-all">{user.email || 'No email set'}</div>
+                            </div>
+                            <div className="col-span-3 text-left pl-2">
+                                <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Phone</div>
+                                <div className="font-semibold text-slate-700 dark:text-slate-200 break-all">{user.phoneNumber || 'No phone set'}</div>
                             </div>
                         </div>
                         <div className="grid grid-cols-3 gap-y-4 text-center">

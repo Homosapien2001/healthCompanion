@@ -15,6 +15,7 @@ export interface UserProfile {
     isAuthenticated: boolean
     name: string
     email: string // Added email
+    phoneNumber?: string // Added phone number for WhatsApp reminders
     password?: string // Added password
     height: number // cm
     weight: number // kg
@@ -85,6 +86,7 @@ export const useAppStore = create<AppState>()(
                 isAuthenticated: false,
                 name: 'Guest',
                 email: '', // Initial email
+                phoneNumber: '', // Initial phone number
                 password: '', // Initial password
                 height: 170,
                 weight: 70,
