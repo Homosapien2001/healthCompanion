@@ -228,6 +228,26 @@ export default function MedicineMode() {
                             <p className="text-xs text-green-700/70 dark:text-green-500 mt-1">
                                 {user.phoneNumber ? `Active for ${user.phoneNumber}` : "Enable 15 min alerts on your phone"}
                             </p>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!("Notification" in window)) {
+                                        toast.error("Notifications not supported");
+                                        return;
+                                    }
+                                    Notification.requestPermission().then(permission => {
+                                        if (permission === 'granted') {
+                                            new Notification("Test Notification", { body: "If you see this, reminders will work!" });
+                                            toast.success("Test notification sent!");
+                                        } else {
+                                            toast.error("Permission denied");
+                                        }
+                                    });
+                                }}
+                                className="mt-2 text-xs bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-1 rounded hover:bg-green-300 transition"
+                            >
+                                Test Alert
+                            </button>
                         </div>
                     </div>
                 </Card>

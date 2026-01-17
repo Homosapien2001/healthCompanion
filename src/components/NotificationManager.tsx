@@ -36,19 +36,20 @@ export default function NotificationManager() {
                 // Normalize for day wrap around (e.g. 00:10 -> -5 -> 23:55) - simpler to mostly ignore for now unless needed
 
                 if (Math.abs(currentTimeInMinutes - notifyTimeInMinutes) < 1) {
-                    // Check if we already notified recently? 
-                    // For 1 min interval, this might fire once or twice.
-                    // A simple dedup: relying on exact minute match via setInterval alignment is flaky,
-                    // but < 1 minute diff is decent. To prevent double fire, we could use a ref to store 'lastNotifiedTime'.
-
-                    new Notification(`Time to take ${reminder.medicineName} soon!`, {
-                        body: `Scheduled for ${reminder.time}. ${reminder.notes || ''}`,
-                        icon: '/pwa-192x192.png', // Assuming pwa icon exists
-                        tag: `med-${reminder.id}-${new Date().getDate()}` // Unique tag per day prevents duplicates
+                    new Notification(`Upcoming Medicine: ${reminder.medicineName}`, {
+                        body: `Take in 15 mins (at ${reminder.time}). ${reminder.notes || ''}`,
+                        icon: '/pwa-192x192.png',
+                        tag: `med-pre-${reminder.id}-${new Date().getDate()}`
                     });
+                }
 
-                    // Also play sound?
-                    // const audio = new Audio('/notification.mp3'); audio.play();
+                // Notify AT the time
+                if (Math.abs(currentTimeInMinutes - reminderTimeInMinutes) < 1) {
+                    new Notification(`TIME TO TAKE: ${reminder.medicineName}`, {
+                        body: `It is ${reminder.time}. ${reminder.notes || ''}`,
+                        icon: '/pwa-192x192.png',
+                        tag: `med-now-${reminder.id}-${new Date().getDate()}`
+                    });
                 }
             });
         }
