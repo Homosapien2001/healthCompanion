@@ -12,10 +12,30 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { searchMedicine, type Medicine } from "../services/medicine"
 
 export default function MedicineMode() {
     const toggleMedicineMode = useAppStore(state => state.toggleMedicineMode)
     const [searchQuery, setSearchQuery] = useState("")
+    const [searchResults, setSearchResults] = useState<Medicine[]>([])
+    const [isSearching, setIsSearching] = useState(false)
+    const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null)
+
+    const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value
+        setSearchQuery(query)
+        if (query.length > 1) {
+            setIsSearching(true)
+            try {
+                const results = await searchMedicine(query)
+                setSearchResults(results)
+            } finally {
+                setIsSearching(false)
+            }
+        } else {
+            setSearchResults([])
+        }
+    }
 
     const handleWhatsAppSetup = () => {
         // Mocking the setup
@@ -51,7 +71,7 @@ export default function MedicineMode() {
             {/* Main Actions */}
             <div className="grid grid-cols-1 gap-4 mb-8">
                 {/* Search */}
-                <Card className="p-4 border-red-100 dark:border-slate-800 shadow-md">
+                <Card className="p-4 border-red-100 dark:border-slate-800 shadow-md relative z-20">
                     <label className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-2 block">
                         Find Medicine
                     </label>
@@ -59,12 +79,37 @@ export default function MedicineMode() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Type medicine name..."
+                            placeholder="Type medicine name (e.g. Paracetamol)..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={handleSearch}
                             className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all"
                         />
+                        {isSearching && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full" />
+                            </div>
+                        )}
                     </div>
+
+                    {/* Search Results Dropdown */}
+                    {searchResults.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-30 max-h-[300px] overflow-y-auto">
+                            {searchResults.map(med => (
+                                <button
+                                    key={med.id}
+                                    onClick={() => {
+                                        setSelectedMedicine(med)
+                                        setSearchQuery("")
+                                        setSearchResults([])
+                                    }}
+                                    className="w-full text-left p-3 hover:bg-red-50 dark:hover:bg-red-900/10 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
+                                >
+                                    <div className="font-semibold text-slate-800 dark:text-slate-200">{med.name}</div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">{med.genericName}</div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </Card>
 
                 {/* Scan Prescription */}
@@ -143,6 +188,73 @@ export default function MedicineMode() {
                     </Card>
                 </div>
             </div>
+
+            {/* Medicine Details Modal */}
+            {selectedMedicine && (
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+                    <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 duration-300 max-h-[85vh] overflow-y-auto">
+                        <div className="p-6 space-y-6">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white">{selectedMedicine.name}</h3>
+                                    <p className="text-slate-500 dark:text-slate-400 font-medium">{selectedMedicine.genericName}</p>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedMedicine(null)}
+                                    className="p-1 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500"
+                                >
+                                    <ArrowLeft size={20} className="rotate-180" /> {/* Close icon substitute */}
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
+                                    <h4 className="font-semibold text-red-700 dark:text-red-400 text-sm uppercase tracking-wide mb-1">Description</h4>
+                                    <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+                                        {selectedMedicine.description}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-semibold text-slate-800 dark:text-white mb-2">Dosage</h4>
+                                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                                        {selectedMedicine.dosage}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-semibold text-slate-800 dark:text-white mb-2">Common Side Effects</h4>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        {selectedMedicine.sideEffects.map(effect => (
+                                            <li key={effect} className="text-slate-600 dark:text-slate-400 text-sm">
+                                                {effect}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-semibold text-slate-800 dark:text-white mb-2">Warnings</h4>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        {selectedMedicine.warnings.map(warning => (
+                                            <li key={warning} className="text-slate-600 dark:text-slate-400 text-sm">
+                                                {warning}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <Button fullWidth onClick={() => {
+                                toast.success(`Added ${selectedMedicine.name} to reminders`)
+                                setSelectedMedicine(null)
+                            }}>
+                                Add to Schedule
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
