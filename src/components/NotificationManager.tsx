@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'
 
 export default function NotificationManager() {
@@ -15,6 +15,8 @@ export default function NotificationManager() {
         }
     }, []);
 
+    const notifiedRef = useRef<Set<string>>(new Set());
+
     useEffect(() => {
         const checkReminders = () => {
             if (Notification.permission !== "granted") return;
@@ -23,6 +25,7 @@ export default function NotificationManager() {
             const currentHours = now.getHours();
             const currentMinutes = now.getMinutes();
             const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+            const dateKey = now.getDate(); // Simple day key
 
             reminders.forEach(reminder => {
                 if (!reminder.enabled) return;
@@ -30,31 +33,37 @@ export default function NotificationManager() {
                 const [rHours, rMinutes] = reminder.time.split(':').map(Number);
                 const reminderTimeInMinutes = rHours * 60 + rMinutes;
 
-                // 15 Minutes before
-                const notifyTimeInMinutes = reminderTimeInMinutes - 15;
+                const diffMinutes = reminderTimeInMinutes - currentTimeInMinutes;
 
-                // Normalize for day wrap around (e.g. 00:10 -> -5 -> 23:55) - simpler to mostly ignore for now unless needed
-
-                if (Math.abs(currentTimeInMinutes - notifyTimeInMinutes) < 1) {
-                    new Notification(`Upcoming Medicine: ${reminder.medicineName}`, {
-                        body: `Take in 15 mins (at ${reminder.time}). ${reminder.notes || ''}`,
-                        icon: '/pwa-192x192.png',
-                        tag: `med-pre-${reminder.id}-${new Date().getDate()}`
-                    });
+                // Logic for "Upcoming" (15 mins before to 1 min before)
+                if (diffMinutes > 0 && diffMinutes <= 15) {
+                    const tag = `med-pre-${reminder.id}-${dateKey}`;
+                    if (!notifiedRef.current.has(tag)) {
+                        new Notification(`Upcoming Medicine: ${reminder.medicineName}`, {
+                            body: `Take in ${diffMinutes} mins (at ${reminder.time}). ${reminder.notes || ''}`,
+                            icon: '/pwa-192x192.png',
+                            tag: tag
+                        });
+                        notifiedRef.current.add(tag);
+                    }
                 }
 
-                // Notify AT the time
-                if (Math.abs(currentTimeInMinutes - reminderTimeInMinutes) < 1) {
-                    new Notification(`TIME TO TAKE: ${reminder.medicineName}`, {
-                        body: `It is ${reminder.time}. ${reminder.notes || ''}`,
-                        icon: '/pwa-192x192.png',
-                        tag: `med-now-${reminder.id}-${new Date().getDate()}`
-                    });
+                // Logic for "Now" (0 mins to -5 mins, catch up if just missed)
+                if (diffMinutes <= 0 && diffMinutes >= -5) {
+                    const tag = `med-now-${reminder.id}-${dateKey}`;
+                    if (!notifiedRef.current.has(tag)) {
+                        new Notification(`TIME TO TAKE: ${reminder.medicineName}`, {
+                            body: `It is ${reminder.time}. ${reminder.notes || ''}`,
+                            icon: '/pwa-192x192.png',
+                            tag: tag
+                        });
+                        notifiedRef.current.add(tag);
+                    }
                 }
             });
         }
 
-        const intervalId = setInterval(checkReminders, 60 * 1000); // Check every minute
+        const intervalId = setInterval(checkReminders, 10 * 1000); // Check every 10 seconds
         checkReminders(); // Initial check
 
         return () => clearInterval(intervalId);
