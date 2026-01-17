@@ -19,6 +19,7 @@ import { searchMedicine, type Medicine } from "../services/medicine"
 
 export default function MedicineMode() {
     const user = useAppStore(state => state.user)
+    const reminders = useAppStore(state => state.reminders)
     const toggleMedicineMode = useAppStore(state => state.toggleMedicineMode)
     const navigate = useNavigate()
 
@@ -240,7 +241,7 @@ export default function MedicineMode() {
                                             new Notification("Test Notification", { body: "If you see this, reminders will work!" });
                                             toast.success("Test notification sent!");
                                         } else {
-                                            toast.error("Permission denied");
+                                            toast.error("Permission denied: " + permission);
                                         }
                                     });
                                 }}
@@ -249,6 +250,28 @@ export default function MedicineMode() {
                                 Test Alert
                             </button>
                         </div>
+                    </div>
+                </Card>
+
+                {/* DEBUG SECTION */}
+                <Card className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 mb-4">
+                    <h3 className="font-bold text-yellow-800 dark:text-yellow-500 mb-2">Debug Info</h3>
+                    <div className="text-xs font-mono space-y-1 text-slate-600 dark:text-slate-400">
+                        <p>Time: {new Date().toLocaleTimeString()} ({new Date().getHours()}:{new Date().getMinutes()})</p>
+                        <p>Permission: {Notification.permission}</p>
+                        <p>Reminders Loaded: {reminders.length}</p>
+                        {reminders.map(r => {
+                            const [h, m] = r.time.split(':').map(Number);
+                            const rTime = h * 60 + m;
+                            const now = new Date();
+                            const cTime = now.getHours() * 60 + now.getMinutes();
+                            const diff = rTime - cTime;
+                            return (
+                                <p key={r.id}>
+                                    - {r.medicineName} @ {r.time} (Diff: {diff}m) [{r.enabled ? 'ON' : 'OFF'}]
+                                </p>
+                            )
+                        })}
                     </div>
                 </Card>
 
