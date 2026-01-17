@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { toast } from 'sonner' // Import toast
 
 export default function NotificationManager() {
     const reminders = useAppStore(state => state.reminders)
@@ -19,7 +20,10 @@ export default function NotificationManager() {
 
     useEffect(() => {
         const checkReminders = () => {
-            if (Notification.permission !== "granted") return;
+            // Debug visual: Check if we enter the loop.
+            // We allow checking even if permission not granted yet, so debugging works via toast/console.
+
+            const hasPermission = Notification.permission === "granted";
 
             const now = new Date();
             const currentHours = now.getHours();
@@ -39,11 +43,21 @@ export default function NotificationManager() {
                 if (diffMinutes > 0 && diffMinutes <= 15) {
                     const tag = `med-pre-${reminder.id}-${dateKey}`;
                     if (!notifiedRef.current.has(tag)) {
-                        new Notification(`Upcoming Medicine: ${reminder.medicineName}`, {
-                            body: `Take in ${diffMinutes} mins (at ${reminder.time}). ${reminder.notes || ''}`,
-                            icon: '/pwa-192x192.png',
-                            tag: tag
+                        console.log("Triggering Upcoming Notif:", reminder.medicineName, diffMinutes);
+
+                        if (hasPermission) {
+                            new Notification(`Upcoming Medicine: ${reminder.medicineName}`, {
+                                body: `Take in ${diffMinutes} mins (at ${reminder.time}). ${reminder.notes || ''}`,
+                                icon: '/pwa-192x192.png',
+                                tag: tag
+                            });
+                        }
+
+                        // ALWAYS show toast as fallback
+                        toast.info(`Upcoming: ${reminder.medicineName}`, {
+                            description: `Take in ${diffMinutes} mins (at ${reminder.time})`
                         });
+
                         notifiedRef.current.add(tag);
                     }
                 }
@@ -52,11 +66,22 @@ export default function NotificationManager() {
                 if (diffMinutes <= 0 && diffMinutes >= -5) {
                     const tag = `med-now-${reminder.id}-${dateKey}`;
                     if (!notifiedRef.current.has(tag)) {
-                        new Notification(`TIME TO TAKE: ${reminder.medicineName}`, {
-                            body: `It is ${reminder.time}. ${reminder.notes || ''}`,
-                            icon: '/pwa-192x192.png',
-                            tag: tag
+                        console.log("Triggering NOW Notif:", reminder.medicineName, diffMinutes);
+
+                        if (hasPermission) {
+                            new Notification(`TIME TO TAKE: ${reminder.medicineName}`, {
+                                body: `It is ${reminder.time}. ${reminder.notes || ''}`,
+                                icon: '/pwa-192x192.png',
+                                tag: tag
+                            });
+                        }
+
+                        // ALWAYS show toast
+                        toast.success(`TIME TO TAKE: ${reminder.medicineName}`, {
+                            description: `It is time! (${reminder.notes || ''})`,
+                            duration: 10000
                         });
+
                         notifiedRef.current.add(tag);
                     }
                 }
