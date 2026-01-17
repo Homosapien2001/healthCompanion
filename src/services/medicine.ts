@@ -35,8 +35,20 @@ export const searchMedicine = async (query: string): Promise<Medicine[]> => {
     if (!query) return []
 
     try {
-        // Search by brand name
-        const response = await fetch(`https://api.fda.gov/drug/label.json?search=openfda.brand_name:"${encodeURIComponent(query)}"&limit=10`)
+        const trimmed = query.trim()
+        if (!trimmed) return []
+
+        // Create search query: Brand Name OR Generic Name
+        // OpenFDA: Space matches OR.
+        // If single word, use wildcard * for partial match (autocomplete feel).
+        // If multiple words, use quotes for phrase match.
+        const isSingleWord = !trimmed.includes(' ')
+        const encoded = encodeURIComponent(trimmed)
+        const term = isSingleWord ? `${encoded}*` : `"${encoded}"`
+
+        const searchQuery = `openfda.brand_name:${term} openfda.generic_name:${term}`
+
+        const response = await fetch(`https://api.fda.gov/drug/label.json?search=${searchQuery}&limit=20`)
 
         if (!response.ok) {
             if (response.status === 404) return [] // No results found
