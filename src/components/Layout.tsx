@@ -2,6 +2,7 @@ import { Outlet, useLocation, Navigate } from "react-router-dom"
 import { BottomNav } from "./BottomNav"
 import { useAppStore } from "../store/useAppStore"
 import MedicineMode from "../pages/MedicineMode"
+import NotificationManager from "./NotificationManager" // Import this!
 
 import { Toaster } from 'sonner'
 
@@ -18,6 +19,7 @@ export default function Layout() {
     if (medicineMode) {
         return (
             <>
+                <NotificationManager />
                 <MedicineMode />
                 <Toaster
                     position="top-center"
@@ -45,6 +47,7 @@ export default function Layout() {
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 pb-[90px] transition-colors duration-300">
+            <NotificationManager />
             <div className="flex-1 w-full max-w-md mx-auto">
                 <Outlet />
             </div>
