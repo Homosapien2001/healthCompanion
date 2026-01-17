@@ -12,13 +12,9 @@ import { analyzeImage } from "../lib/ai"
 import { toast } from "sonner"
 
 export default function Log() {
-    const medicineMode = useAppStore(state => state.medicineMode)
-
     // Dynamic Tabs
     const TABS: MealEntry['mealType'][] = ['breakfast', 'lunch', 'dinner', 'snack']
-    if (medicineMode) {
-        TABS.push('medicine')
-    }
+    // Medicine is now handled in Medicine Mode
 
     const [activeTab, setActiveTab] = useState<MealEntry['mealType']>('breakfast')
     const [isAddingMode, setIsAddingMode] = useState(false)
