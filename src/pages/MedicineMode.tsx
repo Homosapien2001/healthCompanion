@@ -21,19 +21,35 @@ export default function MedicineMode() {
     const [isSearching, setIsSearching] = useState(false)
     const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null)
 
+    const [hasSearched, setHasSearched] = useState(false)
+
     const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value
         setSearchQuery(query)
+
         if (query.length > 1) {
             setIsSearching(true)
+            setHasSearched(false) // Reset while searching
+            // Create a local variable to capture the current query for this closure
+            const currentQuery = query
             try {
                 const results = await searchMedicine(query)
-                setSearchResults(results)
+                // Only update if the query hasn't changed in the meantime (basic debouncing/race check)
+                if (currentQuery === query) {
+                    setSearchResults(results)
+                    setHasSearched(true)
+                }
+            } catch (error) {
+                console.error("Search failed", error)
             } finally {
-                setIsSearching(false)
+                if (currentQuery === query) {
+                    setIsSearching(false)
+                }
             }
         } else {
             setSearchResults([])
+            setHasSearched(false)
+            setIsSearching(false)
         }
     }
 
@@ -92,22 +108,29 @@ export default function MedicineMode() {
                     </div>
 
                     {/* Search Results Dropdown */}
-                    {searchResults.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-30 max-h-[300px] overflow-y-auto">
-                            {searchResults.map(med => (
-                                <button
-                                    key={med.id}
-                                    onClick={() => {
-                                        setSelectedMedicine(med)
-                                        setSearchQuery("")
-                                        setSearchResults([])
-                                    }}
-                                    className="w-full text-left p-3 hover:bg-red-50 dark:hover:bg-red-900/10 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
-                                >
-                                    <div className="font-semibold text-slate-800 dark:text-slate-200">{med.name}</div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">{med.genericName}</div>
-                                </button>
-                            ))}
+                    {(searchResults.length > 0 || (hasSearched && searchQuery.length > 1)) && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 max-h-[300px] overflow-y-auto">
+                            {searchResults.length > 0 ? (
+                                searchResults.map(med => (
+                                    <button
+                                        key={med.id}
+                                        onClick={() => {
+                                            setSelectedMedicine(med)
+                                            setSearchQuery("")
+                                            setSearchResults([])
+                                            setHasSearched(false)
+                                        }}
+                                        className="w-full text-left p-3 hover:bg-red-50 dark:hover:bg-red-900/10 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
+                                    >
+                                        <div className="font-semibold text-slate-800 dark:text-slate-200">{med.name}</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">{med.genericName}</div>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-4 text-center text-slate-500 text-sm">
+                                    No medicines found matching "{searchQuery}"
+                                </div>
+                            )}
                         </div>
                     )}
                 </Card>
